@@ -1,640 +1,165 @@
 <!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="utf-8">
+<html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Monster Battle</title>
-
 <style>
-/* =====================================================
-   COLOURS (change these to re-theme the whole game)
-   ===================================================== */
-:root{
---bg:#0b0a12;
---ink:#f3e3b5;          /* parchment text */
---panel:#241c14;        /* stone panel */
---line:#c9a227;         /* gold border */
---btn:#3a3025;
---btn-ink:#f3e3b5;
---btn-off:#2b2620;
---gold:#f0d27a;
-box-sizing:border-box;
-padding-top:env(safe-area-inset-top,0px);
-padding-bottom:env(safe-area-inset-bottom,0px)
-}
-
-html{scroll-padding-top:env(safe-area-inset-top,0px)}
+:root{--ink:#f3e3b5;--line:#c9a227;--gold:#f0d27a}
 *{box-sizing:border-box}
-
-body{
-margin:0;
-background:radial-gradient(circle at top,#1f1d3f,#0b0a12 70%);
-color:var(--ink);
-font-family:Georgia,"Palatino Linotype",serif;
-min-height:100vh;
-display:flex;
-justify-content:center;
-padding:16px
-}
-
+body{margin:0;padding:16px;min-height:100vh;display:flex;justify-content:center;background:radial-gradient(circle at top,#1f1d3f,#0b0a12 70%);color:var(--ink);font-family:Georgia,serif}
 .wrap{width:100%;max-width:900px}
+h1{font-size:2rem;margin:4px 0;text-align:center;letter-spacing:4px;text-transform:uppercase;color:var(--gold)}
+.top{display:flex;justify-content:center;gap:12px;margin:8px 0}
+.top span{border:2px solid var(--line);border-radius:20px;padding:4px 18px;background:#2a2117}
+.arena{position:relative;height:clamp(300px,50vh,440px);border-radius:16px;overflow:hidden;border:3px solid var(--line);background:linear-gradient(#070a22,#3a3470 58%,#1a1410 58.2%,#0e0a08)}
+.side{position:absolute;z-index:2;bottom:7%;width:42%;text-align:center}
+#heroBox{left:4%}#foeBox{right:4%}
+.who{display:inline-block;font-weight:bold;font-size:1rem;padding:2px 14px;margin-bottom:4px;background:#000b;border:1px solid var(--line);border-radius:10px;color:var(--gold)}
+.bar{height:16px;border-radius:9px;background:#000b;overflow:hidden;border:2px solid var(--line)}
+.bar i{display:block;height:100%;width:100%;transition:width .5s}
+#heroHp{background:linear-gradient(90deg,#1fa85a,#8dffb0)}#foeHp{background:linear-gradient(90deg,#9d1c2c,#ff6a5c)}
+.num{font-size:.78rem;margin:3px 0 6px;color:#fff}
+.bob{display:inline-block;position:relative;animation:bob 2.4s ease-in-out infinite}
+.fighter{position:relative;display:inline-block;font-size:clamp(60px,10vw,92px);line-height:1.1}
+.fighter svg{display:block;width:clamp(84px,14vw,120px)}
+.pop{position:absolute;left:50%;top:0;font-size:26px;font-weight:bold;animation:rise .9s forwards;text-shadow:0 2px 4px #000}
+.dmg{color:#ff6b6b}.heal{color:#6bff95}.miss{color:#ddd;font-size:20px}
+@keyframes rise{from{transform:translate(-50%,0);opacity:1}to{transform:translate(-50%,-60px);opacity:0}}
+@keyframes bob{50%{transform:translateY(-7px)}}
+@keyframes lungeR{50%{transform:translateX(80px)}}@keyframes lungeL{50%{transform:translateX(-80px)}}
+@keyframes shake{20%{transform:translateX(-10px);filter:brightness(2)}40%{transform:translateX(10px)}60%{transform:translateX(-6px)}80%{transform:translateX(6px)}}
+@keyframes die{to{opacity:0;transform:translateY(30px) rotate(20deg)}}
+.lungeR{animation:lungeR .4s}.lungeL{animation:lungeL .4s}.shake{animation:shake .4s}.dead{animation:die .8s forwards}
+.guard::after{content:"";position:absolute;left:50%;top:50%;width:150%;height:140%;transform:translate(-50%,-50%);border-radius:50%;border:3px solid #7fe7ff;background:#7fe7ff33;pointer-events:none}
+.log{margin:12px 0;padding:10px 14px;min-height:140px;background:#241c14;border:2px solid var(--line);border-radius:10px}
+.log p{margin:3px 0;opacity:.65}.log p:first-child{opacity:1;font-weight:bold;color:#fff3c4}
+.actions{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+@media(min-width:700px){.actions{grid-template-columns:repeat(4,1fr)}}
+button{font:inherit;padding:12px 6px;border:2px solid var(--line);border-radius:8px;background:linear-gradient(#4a3d2c,#2a2117);color:var(--ink);cursor:pointer}
+button small{display:block;opacity:.85;font-size:.78rem}
+button:hover:not(:disabled){filter:brightness(1.25)}button:disabled{opacity:.5;cursor:not-allowed}
+button:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
+.screen{position:fixed;inset:0;z-index:5;overflow:auto;padding:16px;background:#0b0a12f2;display:flex;flex-direction:column;align-items:center;gap:10px;text-align:center}
+.screen[hidden]{display:none}
 
-/* ---------- Title ---------- */
-h1{
-font-size:2.2rem;
-margin:4px 0 2px;
-text-align:center;
-letter-spacing:4px;
-text-transform:uppercase;
-background:linear-gradient(#fff3c4,#c9a227);
--webkit-background-clip:text;
-background-clip:text;
-color:transparent;
-filter:drop-shadow(0 2px 6px #c9a22766)
-}
-.sub{margin:0 0 12px;text-align:center;opacity:.8;font-size:.95rem;font-style:italic}
-
-/* ---------- Fight / Gold pills ---------- */
-.top{display:flex;justify-content:center;gap:12px;font-size:1rem;margin-bottom:10px}
-.top span{
-background:linear-gradient(#3a3025,#1d1812);
-border:2px solid var(--line);
-border-radius:20px;
-padding:4px 18px;
-box-shadow:0 2px 0 #0008
-}
-.top b{color:var(--gold)}
-
-/* =====================================================
-   BATTLE ARENA
-   ===================================================== */
-.arena{
-position:relative;
-height:clamp(310px,52vh,470px);
-border-radius:16px;
-overflow:hidden;
-color:#fff;
-background:linear-gradient(#070a22 0%,#1b1d4f 35%,#3a3470 58%,#1a1410 58.2%,#0e0a08 100%);
-border:3px solid var(--line);
-box-shadow:0 0 28px #c9a22744,inset 0 0 0 3px #0008
-}
-
-/* twinkling stars */
-.stars{
-position:absolute;inset:0 0 42% 0;
-background-image:
-radial-gradient(1.5px 1.5px at 8% 18%,#fff,transparent),
-radial-gradient(1.5px 1.5px at 18% 44%,#fff,transparent),
-radial-gradient(1px 1px at 27% 12%,#fff,transparent),
-radial-gradient(1.5px 1.5px at 36% 32%,#fff,transparent),
-radial-gradient(1px 1px at 64% 14%,#fff,transparent),
-radial-gradient(1.5px 1.5px at 73% 40%,#fff,transparent),
-radial-gradient(1px 1px at 84% 20%,#fff,transparent),
-radial-gradient(1.5px 1.5px at 93% 36%,#fff,transparent);
-animation:twinkle 3s ease-in-out infinite alternate
-}
-
-.moon{
-position:absolute;
-top:18px;
-left:50%;
-width:50px;
-height:50px;
-border-radius:50%;
-background:radial-gradient(circle at 35% 35%,#fffdf0,#e9deb0 60%,#c9ba80);
-box-shadow:0 0 40px #fff6c866;
-transform:translateX(-50%)
-}
-
-/* castle in the background (drawn in the HTML below) */
-.castle{
-position:absolute;
-left:50%;
-bottom:41%;
-width:min(72%,560px);
-transform:translateX(-50%);
-opacity:.92
-}
-
-/* fog that drifts slowly */
-.fog{
-position:absolute;
-left:-50%;
-width:200%;
-bottom:36%;
-height:110px;
-background:radial-gradient(ellipse at center,#ffffff26,transparent 65%);
-animation:drift 20s linear infinite alternate
-}
-
-/* stone floor */
-.floor{
-position:absolute;left:0;right:0;bottom:0;height:42%;
-background:
-repeating-linear-gradient(90deg,transparent 0 78px,#0007 78px 80px),
-linear-gradient(#2a2118,#120d09)
-}
-
-/* wall torches */
+.stars{position:absolute;inset:0 0 42% 0;background-image:radial-gradient(1.5px 1.5px at 8% 18%,#fff,transparent),radial-gradient(1.5px 1.5px at 18% 44%,#fff,transparent),radial-gradient(1px 1px at 27% 12%,#fff,transparent),radial-gradient(1.5px 1.5px at 36% 32%,#fff,transparent),radial-gradient(1px 1px at 64% 14%,#fff,transparent),radial-gradient(1.5px 1.5px at 73% 40%,#fff,transparent),radial-gradient(1px 1px at 84% 20%,#fff,transparent),radial-gradient(1.5px 1.5px at 93% 36%,#fff,transparent);animation:twinkle 3s ease-in-out infinite alternate}
+.moon{position:absolute;top:18px;left:50%;width:50px;height:50px;border-radius:50%;background:radial-gradient(circle at 35% 35%,#fffdf0,#e9deb0 60%,#c9ba80);box-shadow:0 0 40px #fff6c866;transform:translateX(-50%)}
+.castle{position:absolute;left:50%;bottom:41%;width:min(72%,560px);transform:translateX(-50%);opacity:.92}
+.fog{position:absolute;left:-50%;width:200%;bottom:36%;height:110px;background:radial-gradient(ellipse at center,#ffffff26,transparent 65%);animation:drift 20s linear infinite alternate}
+.floor{position:absolute;left:0;right:0;bottom:0;height:42%;background:repeating-linear-gradient(90deg,transparent 0 78px,#0007 78px 80px),linear-gradient(#2a2118,#120d09)}
 .torch{position:absolute;top:16px;font-size:28px;text-align:center;animation:flicker 1.1s ease-in-out infinite alternate}
 .torch::after{content:"";display:block;width:5px;height:28px;margin:-4px auto 0;background:#5a3a1a;border-radius:2px}
-.torch.l{left:16px}
-.torch.r{right:16px;animation-delay:.4s}
-
-/* ---------- Hero and monster areas ---------- */
-.side{position:absolute;bottom:7%;width:42%;text-align:center}
-#heroBox{left:4%}
-#foeBox{right:4%}
-
-.who{
-display:inline-block;
-font-size:.9rem;
-margin-bottom:4px;
-padding:2px 14px;
-background:#000b;
-border:1px solid var(--line);
-border-radius:10px;
-color:var(--gold);
-letter-spacing:1px
-}
-
-/* health bars: glass tube with gold frame */
-.bar{
-height:16px;
-border-radius:9px;
-background:#000b;
-overflow:hidden;
-border:2px solid var(--line);
-box-shadow:inset 0 2px 4px #000
-}
-.bar i{
-display:block;
-height:100%;
-width:100%;
-transition:width .5s;
-box-shadow:inset 0 5px 0 #ffffff33
-}
-#heroHp{background:linear-gradient(90deg,#1fa85a,#8dffb0)}
-#foeHp{background:linear-gradient(90deg,#9d1c2c,#ff6a5c)}
-.num{font-size:.78rem;opacity:.95;margin:3px 0 6px;text-shadow:0 1px 3px #000}
-
-/* characters */
-.bob{display:inline-block;animation:bob 2.4s ease-in-out infinite}
-.bob.b2{animation-delay:.8s}
-
-.fighter{
-position:relative;
-font-size:clamp(60px,10vw,92px);
-line-height:1.1;
-display:inline-block;
-filter:drop-shadow(0 6px 4px #000a)
-}
-/* soft shadow under each fighter */
-.fighter::before{
-content:"";position:absolute;left:50%;bottom:-8px;width:80%;height:12px;
-transform:translateX(-50%);
-background:radial-gradient(#000c,transparent 70%);
-z-index:-1
-}
-#hero svg{display:block;width:clamp(84px,14vw,130px)}
-
-/* floating numbers (-12, +30, Miss) */
-.fighter .pop{position:absolute;left:50%;top:0;font-size:26px;font-weight:bold;pointer-events:none;animation:rise .9s forwards;text-shadow:0 2px 4px #000}
-.pop.dmg{color:#ff6b6b}
-.pop.heal{color:#6bff95}
-.pop.miss{color:#ddd;font-size:20px}
-
-/* =====================================================
-   ANIMATIONS
-   ===================================================== */
-@keyframes rise{
-from{transform:translate(-50%,0);opacity:1}
-to{transform:translate(-50%,-60px);opacity:0}
-}
-@keyframes lungeR{50%{transform:translateX(80px) scale(1.08)}}
-@keyframes lungeL{50%{transform:translateX(-80px) scale(1.08)}}
-@keyframes shake{
-20%{transform:translateX(-10px);filter:brightness(var(--hb,2)) drop-shadow(0 0 10px var(--hc,red))}
-40%{transform:translateX(10px)}
-60%{transform:translateX(-6px)}
-80%{transform:translateX(6px)}
-}
-@keyframes die{to{opacity:0;transform:translateY(30px) rotate(20deg)}}
-@keyframes bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-7px)}}
+.torch.l{left:16px}.torch.r{right:16px;animation-delay:.4s}
 @keyframes twinkle{from{opacity:.55}to{opacity:1}}
 @keyframes drift{from{transform:translateX(0)}to{transform:translateX(25%)}}
 @keyframes flicker{from{transform:scale(1)}to{transform:scale(1.15) rotate(3deg)}}
-
-.lungeR{animation:lungeR .4s}
-.lungeL{animation:lungeL .4s}
-.shake{animation:shake .4s}
-.dead{animation:die .8s forwards}
-
-/* ---------- Shield glow (switched on by the Defend button) ---------- */
-.bob{position:relative}
-#hero{z-index:2}
-.bob.guard{--hb:1.3;--hc:#7fe7ff}
-.bob.guard::after{
-content:"";
-position:absolute;
-left:50%;
-top:50%;
-z-index:1;
-width:150%;
-height:140%;
-border-radius:50%;
-border:3px solid #7fe7ff;
-background:radial-gradient(circle,#7fe7ff10,#7fe7ff44);
-box-shadow:0 0 26px #7fe7ffaa,inset 0 0 24px #7fe7ff88;
-pointer-events:none;
-animation:guardPulse 1s ease-in-out infinite
-}
-.bob.guard svg{filter:drop-shadow(0 0 10px #7fe7ff)}
-@keyframes guardPulse{
-0%,100%{transform:translate(-50%,-50%) scale(1);opacity:.85}
-50%{transform:translate(-50%,-50%) scale(1.07);opacity:1}
-}
-
-/* =====================================================
-   BATTLE LOG
-   ===================================================== */
-.log{
-margin:12px 0;
-padding:10px 14px;
-min-height:150px;
-background:linear-gradient(#2a2118,#1a1410);
-border:2px solid var(--line);
-border-radius:10px;
-font-size:.95rem;
-box-shadow:inset 0 0 0 3px #0006,inset 0 0 0 4px #c9a22744
-}
-.log::before{
-content:"📜 BATTLE LOG";
-display:block;
-font-size:.7rem;
-letter-spacing:3px;
-color:var(--gold);
-margin-bottom:6px;
-padding-bottom:4px;
-border-bottom:1px solid #c9a22744
-}
-.log p{margin:3px 0}
-.log p:first-child{font-weight:bold;color:#fff3c4}
-.log p:not(:first-child){opacity:.65}
-
-/* =====================================================
-   BUTTONS
-   ===================================================== */
-.actions{
-display:grid;
-grid-template-columns:repeat(2,1fr);
-gap:10px
-}
-@media (min-width:700px){
-.actions{grid-template-columns:repeat(4,1fr)}
-}
-
-button{
-font:inherit;
-font-size:1rem;
-padding:12px 6px;
-border:2px solid var(--line);
-border-radius:8px;
-background:linear-gradient(#4a3d2c,#2a2117);
-color:var(--btn-ink);
-cursor:pointer;
-line-height:1.3;
-box-shadow:inset 0 1px 0 #ffffff22,0 3px 0 #0009;
-transition:transform .15s,box-shadow .15s,filter .15s
-}
-button small{display:block;opacity:.85;font-size:.78rem}
-button:hover:not(:disabled){
-transform:translateY(-3px);
-filter:brightness(1.2);
-box-shadow:0 0 16px #c9a22777,0 5px 0 #0009
-}
-button:active:not(:disabled){transform:translateY(1px)}
-button:disabled{
-background:var(--btn-off);
-border-color:#5a5242;
-color:#8a8370;
-opacity:.7;
-cursor:not-allowed
-}
-button:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
-
-/* =====================================================
-   VICTORY / GAME OVER SCREEN
-   ===================================================== */
-.end{
-position:absolute;
-inset:0;
-display:flex;
-flex-direction:column;
-align-items:center;
-justify-content:center;
-gap:10px;
-background:radial-gradient(circle,#1a1410ee,#0b0a12f5);
-box-shadow:inset 0 0 0 5px #c9a22744;
-text-align:center;
-padding:20px
-}
-.end[hidden]{display:none}
-.end h2{
-margin:0;
-font-size:2.2rem;
-color:var(--gold);
-letter-spacing:4px;
-text-transform:uppercase;
-text-shadow:0 0 22px #c9a227aa
-}
-
-@media (max-width:520px){
-h1{font-size:1.6rem;letter-spacing:2px}
-.side{width:46%}
-.num{font-size:.7rem}
-.torch{display:none}
-}
-
-@media (prefers-reduced-motion:reduce){
-*{animation-duration:.01s!important;transition:none!important}
-}
-</style>
-</head>
-
-<body>
-<div class="wrap">
-
+@media(max-width:520px){.torch{display:none}}
+/* BOLD TEXT: change bold to normal to undo */
+body,button,.log p{font-weight:bold}
+/* CAPITAL NAMES: delete this line to go back to normal */
+.who{text-transform:uppercase;letter-spacing:2px}
+</style></head>
+<body><div class="wrap">
 <h1>Monster Battle</h1>
-<p class="sub">Beat the Goblin, the Orc and the Dragon.</p>
-
-<div class="top">
-<span>⚔️ Fight <b id="stage">1/3</b></span>
-<span>💰 Gold <b id="gold">0</b></span>
-</div>
-
+<div class="top"><span>⚔️ Fight <b id="stage">1/3</b></span><span>💰 Gold <b id="gold">0</b></span></div>
 <div class="arena">
-<div class="stars"></div>
-<div class="moon"></div>
-
-<!-- Castle silhouette (decoration only) -->
-<svg class="castle" viewBox="0 -20 400 180" aria-hidden="true">
-<g fill="#0f0c1f">
-<rect x="150" y="60" width="100" height="100"/>
-<rect x="178" y="20" width="44" height="60"/>
-<polygon points="172,20 200,-14 228,20"/>
-<rect x="60" y="40" width="36" height="120"/>
-<polygon points="54,40 78,0 102,40"/>
-<rect x="300" y="40" width="36" height="120"/>
-<polygon points="294,40 318,0 342,40"/>
-<rect x="20" y="96" width="40" height="64"/>
-<rect x="340" y="96" width="40" height="64"/>
-<rect x="96" y="100" width="54" height="60"/>
-<rect x="250" y="100" width="50" height="60"/>
-<!-- battlements -->
-<rect x="150" y="52" width="10" height="10"/><rect x="170" y="52" width="10" height="10"/>
-<rect x="190" y="52" width="10" height="10"/><rect x="210" y="52" width="10" height="10"/>
-<rect x="230" y="52" width="10" height="10"/>
-<rect x="20" y="88" width="9" height="9"/><rect x="38" y="88" width="9" height="9"/><rect x="51" y="88" width="9" height="9"/>
-<rect x="340" y="88" width="9" height="9"/><rect x="358" y="88" width="9" height="9"/><rect x="371" y="88" width="9" height="9"/>
-</g>
-<!-- flags -->
-<g stroke="#0f0c1f" stroke-width="2"><line x1="200" y1="-14" x2="200" y2="-32"/><line x1="78" y1="0" x2="78" y2="-18"/><line x1="318" y1="0" x2="318" y2="-18"/></g>
-<g fill="#8b1a1a"><polygon points="200,-32 218,-26 200,-20"/><polygon points="78,-18 94,-12 78,-6"/><polygon points="318,-18 334,-12 318,-6"/></g>
-<!-- lit windows and gate -->
-<g fill="#f0b84a">
-<rect x="74" y="70" width="8" height="14"/><rect x="314" y="70" width="8" height="14"/>
-<rect x="192" y="36" width="8" height="14"/><rect x="206" y="36" width="8" height="14"/>
-<rect x="172" y="84" width="8" height="14"/><rect x="220" y="84" width="8" height="14"/>
-<rect x="74" y="112" width="8" height="14"/><rect x="314" y="112" width="8" height="14"/>
-</g>
-<path d="M188 160 v-30 a12 12 0 0 1 24 0 v30z" fill="#2a1a0a"/>
-</svg>
-
-<div class="fog"></div>
-<div class="floor"></div>
-<div class="torch l">🔥</div>
-<div class="torch r">🔥</div>
-
-<div class="side" id="heroBox">
-<div class="who">Hero</div>
-<div class="bar"><i id="heroHp"></i></div>
-<div class="num" id="heroT"></div>
-<div class="bob" id="heroBob">
-<!-- Armored Knight (replaces the old emoji hero) -->
-<div class="fighter" id="hero">
-<svg viewBox="0 0 100 120" aria-label="Armored knight">
-<path d="M36 42 L20 104 L44 98 Z" fill="#8b1a1a"/>
-<rect x="37" y="80" width="11" height="26" rx="3" fill="#6f7a8f"/>
-<rect x="52" y="80" width="11" height="26" rx="3" fill="#6f7a8f"/>
-<rect x="34" y="104" width="17" height="7" rx="3" fill="#3b4252"/>
-<rect x="50" y="104" width="17" height="7" rx="3" fill="#3b4252"/>
-<rect x="32" y="40" width="36" height="44" rx="9" fill="#a9b4c8"/>
-<rect x="40" y="46" width="20" height="22" rx="5" fill="#d3dcec"/>
-<rect x="32" y="74" width="36" height="6" fill="#c9a227"/>
-<path d="M12 52 h22 v22 q0 13 -11 17 q-11 -4 -11 -17 z" fill="#8b1a1a" stroke="#c9a227" stroke-width="3"/>
-<path d="M23 58 v26 M16 68 h14" stroke="#c9a227" stroke-width="3"/>
-<rect x="64" y="50" width="12" height="9" rx="3" fill="#a9b4c8"/>
-<g transform="rotate(28 78 56)">
-<rect x="75" y="8" width="6" height="48" rx="2" fill="#eef3fb"/>
-<rect x="68" y="54" width="20" height="5" rx="2" fill="#c9a227"/>
-<rect x="76" y="58" width="4" height="11" fill="#5a3a1a"/>
-</g>
-<circle cx="50" cy="26" r="15" fill="#a9b4c8"/>
-<rect x="42" y="24" width="20" height="5" rx="2" fill="#1a1d26"/>
-<path d="M48 12 q20 -12 26 6 q-14 -3 -26 3 z" fill="#c0392b"/>
-</svg>
+<div class="stars"></div><div class="moon"></div>
+<svg class="castle" viewBox="0 -20 400 180" aria-hidden="true"><g fill="#0f0c1f"><rect x="150" y="60" width="100" height="100"/><rect x="178" y="20" width="44" height="60"/><polygon points="172,20 200,-14 228,20"/><rect x="60" y="40" width="36" height="120"/><polygon points="54,40 78,0 102,40"/><rect x="300" y="40" width="36" height="120"/><polygon points="294,40 318,0 342,40"/><rect x="20" y="96" width="40" height="64"/><rect x="340" y="96" width="40" height="64"/><rect x="96" y="100" width="54" height="60"/><rect x="250" y="100" width="50" height="60"/><rect x="150" y="52" width="10" height="10"/><rect x="170" y="52" width="10" height="10"/><rect x="190" y="52" width="10" height="10"/><rect x="210" y="52" width="10" height="10"/><rect x="230" y="52" width="10" height="10"/><rect x="20" y="88" width="9" height="9"/><rect x="38" y="88" width="9" height="9"/><rect x="51" y="88" width="9" height="9"/><rect x="340" y="88" width="9" height="9"/><rect x="358" y="88" width="9" height="9"/><rect x="371" y="88" width="9" height="9"/></g><g stroke="#0f0c1f" stroke-width="2"><line x1="200" y1="-14" x2="200" y2="-32"/><line x1="78" y1="0" x2="78" y2="-18"/><line x1="318" y1="0" x2="318" y2="-18"/></g><g fill="#8b1a1a"><polygon points="200,-32 218,-26 200,-20"/><polygon points="78,-18 94,-12 78,-6"/><polygon points="318,-18 334,-12 318,-6"/></g><g fill="#f0b84a"><rect x="74" y="70" width="8" height="14"/><rect x="314" y="70" width="8" height="14"/><rect x="192" y="36" width="8" height="14"/><rect x="206" y="36" width="8" height="14"/><rect x="172" y="84" width="8" height="14"/><rect x="220" y="84" width="8" height="14"/><rect x="74" y="112" width="8" height="14"/><rect x="314" y="112" width="8" height="14"/></g><path d="M188 160 v-30 a12 12 0 0 1 24 0 v30z" fill="#2a1a0a"/></svg>
+<div class="fog"></div><div class="floor"></div><div class="torch l">🔥</div><div class="torch r">🔥</div>
+<div class="side" id="heroBox"><div class="who" id="heroN">Hero</div><div class="bar"><i id="heroHp"></i></div><div class="num" id="heroT"></div>
+<div class="bob" id="heroBob"><div class="fighter" id="hero"></div></div></div>
+<div class="side" id="foeBox"><div class="who" id="foeN"></div><div class="bar"><i id="foeHp"></i></div><div class="num" id="foeT"></div>
+<div class="bob"><div class="fighter" id="foe"></div></div></div>
 </div>
-</div>
-</div>
-
-<div class="side" id="foeBox">
-<div class="who" id="foeN"></div>
-<div class="bar"><i id="foeHp"></i></div>
-<div class="num" id="foeT"></div>
-<div class="bob b2">
-<div class="fighter" id="foe"></div>
-</div>
-</div>
-
-<div class="end" id="end" hidden>
-<h2 id="endT"></h2>
-<div id="endS"></div>
-<button id="again" style="padding:12px 24px">Play again</button>
-</div>
-</div>
-
 <div class="log" id="log" aria-live="polite"></div>
-
 <div class="actions">
 <button id="bAtk">⚔️ Attack<small>10 to 20 damage</small></button>
 <button id="bSp">🔥 Special<small id="spN"></small></button>
 <button id="bPot">🧪 Potion<small id="potN"></small></button>
-<button id="bDef">🛡️ Defend<small>Reduce next hit by 50%</small></button>
-</div>
+<button id="bDef">🛡️ Defend<small>Halve next hit</small></button>
+</div></div>
 
+<div class="screen" id="end" hidden style="justify-content:center">
+<h1 id="endT"></h1><div id="endS"></div>
+<button id="again" style="padding:12px 24px">Play again</button>
 </div>
 
 <script>
-const MON=[
-{n:"Goblin",e:"👺",hp:40,hit:10,gold:20},
-{n:"Orc",e:"👹",hp:70,hit:15,gold:40},
-{n:"Dragon",e:"🐉",hp:110,hit:22,gold:100}
-];
-
+const V='viewBox="0 0 110 120"';
+const HERO_SVG=`<svg ${V}><polygon points="64,22 92,30 66,30" fill="#c0392b"/><circle cx="50" cy="30" r="16" fill="#1c1c26"/><rect x="37" y="25" width="26" height="9" rx="3" fill="#f2c9a0"/><circle cx="44" cy="29" r="1.8"/><circle cx="56" cy="29" r="1.8"/><rect x="34" y="17" width="32" height="5" fill="#c0392b"/><rect x="32" y="44" width="36" height="42" rx="8" fill="#2a2a38"/><rect x="32" y="70" width="36" height="6" fill="#c0392b"/><rect x="37" y="84" width="11" height="22" rx="3" fill="#1c1c26"/><rect x="52" y="84" width="11" height="22" rx="3" fill="#1c1c26"/><rect x="34" y="104" width="16" height="7" rx="3" fill="#0f0f16"/><rect x="50" y="104" width="16" height="7" rx="3" fill="#0f0f16"/><rect x="64" y="52" width="14" height="8" rx="3" fill="#2a2a38"/><g transform="rotate(25 80 60)"><rect x="77" y="12" width="5" height="50" rx="2" fill="#dfe6f3"/><rect x="72" y="60" width="15" height="4" fill="#c9a227"/><rect x="77" y="64" width="4" height="10" fill="#222"/></g></svg>`;
+const GOB_SVG=`<svg ${V}><polygon points="34,32 6,18 34,46" fill="#6dbb4a"/><polygon points="66,32 94,18 66,46" fill="#6dbb4a"/><rect x="35" y="54" width="30" height="34" rx="8" fill="#8b5a2b"/><rect x="38" y="86" width="9" height="20" rx="3" fill="#5a9a3a"/><rect x="53" y="86" width="9" height="20" rx="3" fill="#5a9a3a"/><rect x="35" y="104" width="14" height="7" rx="3" fill="#3b2a14"/><rect x="51" y="104" width="14" height="7" rx="3" fill="#3b2a14"/><circle cx="50" cy="36" r="18" fill="#6dbb4a"/><circle cx="43" cy="33" r="5" fill="#ffd23f"/><circle cx="57" cy="33" r="5" fill="#ffd23f"/><circle cx="42" cy="34" r="2"/><circle cx="58" cy="34" r="2"/><path d="M36 26L47 30M64 26L53 30" stroke="#2d5a1a" stroke-width="2"/><path d="M41 44Q50 50 59 44" stroke="#2d5a1a" stroke-width="2" fill="none"/><rect x="12" y="62" width="5" height="26" fill="#dfe6f3"/><rect x="8" y="86" width="13" height="4" fill="#c9a227"/><rect x="12" y="90" width="5" height="9" fill="#5a3a1a"/><rect x="17" y="66" width="20" height="7" rx="3" fill="#6dbb4a"/></svg>`;
+const ORC_SVG=`<svg viewBox="0 0 110 120"><rect x="12" y="40" width="5" height="60" fill="#5a3a1a"/><circle cx="14" cy="34" r="10" fill="#8a8f9a"/><circle cx="14" cy="22" r="3" fill="#8a8f9a"/><circle cx="4" cy="34" r="3" fill="#8a8f9a"/><rect x="34" y="86" width="12" height="20" fill="#4f6b3a"/><rect x="54" y="86" width="12" height="20" fill="#4f6b3a"/><rect x="32" y="104" width="16" height="7" rx="3" fill="#3b2a14"/><rect x="52" y="104" width="16" height="7" rx="3" fill="#3b2a14"/><rect x="28" y="48" width="44" height="42" rx="10" fill="#4f6b3a"/><rect x="28" y="78" width="44" height="14" fill="#6b4423"/><circle cx="50" cy="32" r="17" fill="#4f6b3a"/><circle cx="44" cy="30" r="2.5" fill="#c0392b"/><circle cx="56" cy="30" r="2.5" fill="#c0392b"/><path d="M38 25L47 28M62 25L53 28" stroke="#222" stroke-width="2"/><rect x="42" y="40" width="16" height="4" rx="2" fill="#2a1a0a"/><polygon points="42,44 38,34 46,43" fill="#fff"/><polygon points="58,44 62,34 54,43" fill="#fff"/><path d="M33 32A17 17 0 0 1 67 32Z" fill="#6f7a8f"/><rect x="47" y="24" width="6" height="12" fill="#6f7a8f"/><rect x="30" y="50" width="40" height="28" rx="6" fill="#6f7a8f"/><circle cx="38" cy="58" r="2" fill="#c9a227"/><circle cx="62" cy="58" r="2" fill="#c9a227"/><circle cx="27" cy="54" r="9" fill="#8a8f9a"/><circle cx="73" cy="54" r="9" fill="#8a8f9a"/></svg>`;
+const DRAGON_SVG=`<svg viewBox="0 0 110 120"><polygon points="55,60 70,8 98,40 86,56" fill="#8e2a1f"/><path d="M82 84Q108 96 104 66Q98 84 82 76Z" fill="#c0392b"/><ellipse cx="60" cy="82" rx="30" ry="22" fill="#c0392b"/><ellipse cx="52" cy="88" rx="16" ry="12" fill="#f2c76e"/><rect x="38" y="96" width="10" height="14" rx="3" fill="#c0392b"/><rect x="68" y="96" width="10" height="14" rx="3" fill="#c0392b"/><ellipse cx="42" cy="62" rx="11" ry="20" fill="#c0392b"/><ellipse cx="30" cy="40" rx="17" ry="13" fill="#c0392b"/><ellipse cx="16" cy="44" rx="10" ry="7" fill="#c0392b"/><polygon points="36,30 44,10 46,32" fill="#f3e9d2"/><circle cx="32" cy="36" r="3.5" fill="#ffd23f"/><circle cx="31" cy="36" r="1.5"/><circle cx="10" cy="42" r="1.5" fill="#222"/><polygon points="12,50 15,50 13.5,55" fill="#fff"/><polygon points="20,50 23,50 21.5,55" fill="#fff"/></svg>`;
+const MON=[{n:"Goblin",s:GOB_SVG,hp:40,hit:10,gold:20},{n:"Orc",s:ORC_SVG,hp:70,hit:15,gold:40},{n:"Dragon",s:DRAGON_SVG,hp:110,hit:22,gold:100}];
 let hero,mon,idx,busy;
-const $=id=>document.getElementById(id);
-const rnd=(a,b)=>Math.floor(Math.random()*(b-a+1))+a;
+const $=id=>document.getElementById(id),rnd=(a,b)=>Math.floor(Math.random()*(b-a+1))+a;
 
-function say(t){
-const p=document.createElement("p");
-p.textContent=t;
-const l=$("log");
-l.prepend(p);
-while(l.children.length>5)l.lastChild.remove();
-}
-
-function pop(id,txt,cls){
-const s=document.createElement("span");
-s.className="pop "+cls;
-s.textContent=txt;
-$(id).appendChild(s);
-setTimeout(()=>s.remove(),900);
-}
-
-function anim(id,c){
-const el=$(id);
-el.classList.remove("lungeR","lungeL","shake","dead");
-void el.offsetWidth;
-el.classList.add(c);
-}
+function say(t){const p=document.createElement("p");p.textContent=t;const l=$("log");l.prepend(p);while(l.children.length>5)l.lastChild.remove()}
+function pop(id,t,c){const s=document.createElement("span");s.className="pop "+c;s.textContent=t;$(id).appendChild(s);setTimeout(()=>s.remove(),900)}
+function anim(id,c){const e=$(id);e.classList.remove("lungeR","lungeL","shake","dead");void e.offsetWidth;e.classList.add(c)}
 
 function draw(){
 const h=Math.max(hero.hp,0),f=Math.max(mon.cur,0);
-$("heroHp").style.width=h+"%";
-$("heroT").textContent=h+" / 100 HP";
-$("foeHp").style.width=(f/mon.max*100)+"%";
-$("foeT").textContent=f+" / "+mon.max+" HP";
-$("gold").textContent=hero.gold;
-$("stage").textContent=(idx+1)+"/3";
-$("spN").textContent=hero.sp+" left, 70% hit";
-$("potN").textContent=hero.pot+" left, +30 HP";
-$("bAtk").disabled=busy;
-$("bSp").disabled=busy||hero.sp<1;
-$("bPot").disabled=busy||hero.pot<1;
-$("bDef").disabled=busy;
+$("heroHp").style.width=h+"%";$("heroT").textContent=h+" / 100 HP";
+$("foeHp").style.width=(f/mon.max*100)+"%";$("foeT").textContent=f+" / "+mon.max+" HP";
+$("gold").textContent=hero.gold;$("stage").textContent=(idx+1)+"/3";
+$("spN").textContent=hero.sp+" left, 70% hit";$("potN").textContent=hero.pot+" left, +30 HP";
+$("bAtk").disabled=busy;$("bSp").disabled=busy||hero.sp<1;$("bPot").disabled=busy||hero.pot<1;$("bDef").disabled=busy;
 }
 
 function start(){
 hero={hp:100,pot:3,sp:2,gold:0};
-$("heroBob").classList.remove("guard");
-idx=0;
 $("end").hidden=true;
-$("log").innerHTML="";
-spawn();
+$("hero").innerHTML=HERO_SVG;
+$("heroBob").classList.remove("guard");
+idx=0;$("log").innerHTML="";spawn();
 }
 
 function spawn(){
-mon={...MON[idx],max:MON[idx].hp,cur:MON[idx].hp};
-$("foe").textContent=mon.e;
-$("foe").className="fighter";
-$("foeN").textContent=mon.n;
-say("A wild "+mon.n+" appears!");
-busy=false;
-draw();
+const m=MON[idx];
+mon={...m,max:m.hp,cur:m.hp};
+$("foe").innerHTML=m.s;
+$("foe").className="fighter";$("foeN").textContent=mon.n;
+say("A wild "+mon.n+" appears!");busy=false;draw();
 }
 
-function hit(d,msg){
-anim("hero","lungeR");
-mon.cur-=d;
-setTimeout(()=>anim("foe","shake"),150);
-pop("foe","-"+d,"dmg");
-say(msg);
-}
+function hit(d,msg){anim("hero","lungeR");mon.cur-=d;setTimeout(()=>anim("foe","shake"),150);pop("foe","-"+d,"dmg");say(msg)}
 
 function act(t){
-if(busy)return;
-busy=true;
-let defending=false;
-
-if(t==="atk"){
-const d=rnd(10,20);
-hit(d,"You hit the "+mon.n+" for "+d+".");
-}
-else if(t==="sp"){
-hero.sp--;
-if(Math.random()<0.7){
-const d=rnd(30,40);
-hit(d,"Special attack! "+d+" damage.");
-}else{
-anim("hero","lungeR");
-pop("foe","Miss","miss");
-say("Your special attack missed.");
-}
-}
-else if(t==="pot"){
-hero.pot--;
-hero.hp=Math.min(100,hero.hp+30);
-pop("hero","+30","heal");
-say("You drink a potion. HP is now "+hero.hp+".");
-}
-else if(t==="def"){
-defending=true;
-$("heroBob").classList.add("guard");
-anim("hero","shake");
-say("You defend yourself! The next monster attack will be reduced by half.");
-}
-
+if(busy)return;busy=true;let def=false;
+if(t==="atk"){const d=rnd(10,20);hit(d,"You hit the "+mon.n+" for "+d+".")}
+else if(t==="sp"){hero.sp--;
+if(Math.random()<.7){const d=rnd(30,40);hit(d,"Special attack! "+d+" damage.")}
+else{anim("hero","lungeR");pop("foe","Miss","miss");say("Your special attack missed.")}}
+else if(t==="pot"){hero.pot--;hero.hp=Math.min(100,hero.hp+30);pop("hero","+30","heal");say("You drink a potion. HP is now "+hero.hp+".")}
+else{def=true;$("heroBob").classList.add("guard");anim("hero","shake");say("You defend! The next attack is halved.")}
 draw();
 if(mon.cur<=0)return win();
-setTimeout(()=>foeTurn(defending),800);
+setTimeout(()=>foeTurn(def),800);
 }
 
-function foeTurn(defending){
+function foeTurn(def){
 let d=rnd(1,mon.hit);
-
-if(defending){
-d=Math.floor(d/2);
-say("Your defense reduces the monster's damage!");
-}
-
-anim("foe","lungeL");
-hero.hp-=d;
-setTimeout(()=>anim("hero","shake"),150);
-pop("hero","-"+d,"dmg");
-setTimeout(()=>$("heroBob").classList.remove("guard"),600);
-say("The "+mon.n+" hits you for "+d+".");
-draw();
-
+if(def){d=Math.floor(d/2);say("Your defense reduces the damage!")}
+anim("foe","lungeL");hero.hp-=d;setTimeout(()=>anim("hero","shake"),150);
+pop("hero","-"+d,"dmg");setTimeout(()=>$("heroBob").classList.remove("guard"),600);
+say("The "+mon.n+" hits you for "+d+".");draw();
 if(hero.hp<=0)return finish(false);
-busy=false;
-draw();
+busy=false;draw();
 }
 
 function win(){
-hero.gold+=mon.gold;
-anim("foe","dead");
-say("You defeated the "+mon.n+". +"+mon.gold+" gold.");
-draw();
+hero.gold+=mon.gold;anim("foe","dead");say("You defeated the "+mon.n+". +"+mon.gold+" gold.");draw();
 idx++;
-if(idx>=3)setTimeout(()=>finish(true),1000);
-else setTimeout(spawn,1300);
+if(idx>=3)setTimeout(()=>finish(true),1000);else setTimeout(spawn,1300);
 }
 
 function finish(won){
-busy=true;
-$("endT").textContent=won?"Victory!":"Game over";
+busy=true;$("endT").textContent=won?"Victory!":"Game over";
 $("endS").textContent=(won?"All monsters defeated. ":"The "+mon.n+" got you. ")+"Gold collected: "+hero.gold;
 $("end").hidden=false;
 }
 
-$("bAtk").onclick=()=>act("atk");
-$("bSp").onclick=()=>act("sp");
-$("bPot").onclick=()=>act("pot");
-$("bDef").onclick=()=>act("def");
+$("bAtk").onclick=()=>act("atk");$("bSp").onclick=()=>act("sp");$("bPot").onclick=()=>act("pot");$("bDef").onclick=()=>act("def");
 $("again").onclick=start;
-
 start();
-</script>
-</body>
-</html>
+</script></body></html>
